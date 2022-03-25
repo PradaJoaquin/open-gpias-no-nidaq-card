@@ -62,7 +62,53 @@ class plotWidget(QtWidgets.QWidget):
         self.title = "Plot" + str(number + 1)
 
         # create a pandas dataframe from the recorded data
-        self.data = pd.DataFrame(data.T, columns=["x", "y", "z", "trigger", "stimulus", "burst", "protocol"])
+        self.data = pd.DataFrame(
+            data.T, columns=["x", "y", "z", "trigger", "stimulus", "burst", "protocol"])
+
+        # data for information about current measurement
+        if data[6][1] == 1:
+            self.noise = "band"
+        elif data[6][1] == 2:
+            self.noise = "broadband"
+        elif data[6][1] == 3:
+            self.noise = "notched"
+        else:
+            self.noise = "No"
+
+        if data[6][2] is True:
+            self.noiseGap = "Yes"
+        else:
+            self.noiseGap = "False"
+        self.noiseFreqMin = str(data[6][3])
+        self.noiseFreqMax = str(data[6][4])
+        self.preStimAtten = str(data[6][5])
+        self.preStimFreq = str(data[6][6])
+        self.ISI = str(data[6][7])
+        self.noiseTime = str(data[6][8])
+
+        # Measurement time
+        self.t = np.linspace(0.0, 950.0, self.data["x"].__len__())
+
+        # variable for movement control
+        self.valid_trial = None
+
+        # data, total acceleration, low pass filtered and calibrated
+        self.data_filt = self.rms(
+            self.data["x"], self.data["y"], self.data["z"])
+
+        self.plot_tr_stim_burst()
+        self.plot_raw()
+        self.plot_total()
+
+        self.canvas.draw()
+
+    def setData_old(self, data, number):
+        self.idx = number
+        self.title = "Plot" + str(number + 1)
+
+        # create a pandas dataframe from the recorded data
+        self.data = pd.DataFrame(
+            data.T, columns=["x", "y", "z", "trigger", "stimulus", "burst", "protocol"])
 
         # data for information about current measurement
         if data[6][1] == 1:
@@ -102,7 +148,7 @@ class plotWidget(QtWidgets.QWidget):
 
     def plot(self):
         # check if animal has moved
-        self.valid_trial = self.movementCheck()
+        #self.valid_trial = self.movementCheck()
 
         # caption of plot window
         # if invalid trial:
@@ -211,6 +257,8 @@ class plotWidget(QtWidgets.QWidget):
         """
         Calculation of max acceleration
         """
+        data = self.data_filt[800:]
+        return max(data)
         # calculation of maximum only if trial is valid
         if self.valid_trial:
             # searching for maximum after stimulus
@@ -234,7 +282,7 @@ class plotWidget(QtWidgets.QWidget):
         """ check if animal has moved before noise burst """
         # data until threshold
         val = self.data_filt[:8000]
-        if max(val) > self.config.acceleration_threshold:
+        if max(val) > float(self.config.acceleration_threshold):
             return False
         else:
             return True

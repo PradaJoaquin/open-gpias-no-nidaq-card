@@ -26,6 +26,8 @@ import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
 from threading import Thread
+
+from sympy import true
 from . import StimulusBackend
 from . import gui_helpers
 from .MeasurementPlot import plotWidget
@@ -170,7 +172,7 @@ class measurementGui(QtWidgets.QWidget):
 
     def statusUpdated(self):
         status = dict(Soundcard=self.measurement_thread.signal.checkSettings(),
-                      NiDAQ=self.measurement_thread.checkNiDAQ(),
+                      NiDAQ=True,
                       Protocol=self.measurement_thread.protocolWidget.checkProtocol(),
                       Metadata=self.checkData())
         self.status_bar.setStatus(status)
@@ -343,7 +345,7 @@ class measurementGui(QtWidgets.QWidget):
         """ check if animal has moved before noise burst """
         # data until threshold
         val = data[:8000]
-        if max(val) > self.config.acceleration_threshold:
+        if max(val) > float(self.config.acceleration_threshold):
             return False
         else:
             return True
@@ -352,6 +354,7 @@ class measurementGui(QtWidgets.QWidget):
         """
         Calculation of max acceleration
         """
+        return max(data[800:])
         # calculation of maximum only if trial is valid
         if self.movementCheck(data):
             # searching for maximum after stimulus
@@ -377,7 +380,41 @@ class measurementGui(QtWidgets.QWidget):
         # extract the maximal amplitude of each trial
         for idx in range(len(extracted_data)):
             # get the filtered rms of x, y, z
-            data = self.rms(extracted_data[idx][0], extracted_data[idx][1], extracted_data[idx][2])
+            # data = self.rms(
+            #    extracted_data[idx][0], extracted_data[idx][1], extracted_data[idx][2])
+            data = extracted_data[idx][0]
+            extracted_data[idx][6][0] = self.get_max(data)
+
+        only_amplitude = np.zeros((len(extracted_data), 10))
+        for i, item in enumerate(extracted_data):
+            only_amplitude[i] = item[6][:10]
+        #        local_amplitudeIDX = 0
+        #        local_noiseIDX = 1
+        #        local_noiseGapIDX = 2
+        local_noiseFreqMinIDX = 3
+        local_noiseFreqMaxIDX = 4
+        local_preStimAttenIDX = 5
+        #        local_preStimFreqIDX = 6
+        #        local_ISIIDX = 7
+        #        local_noiseTimeIDX = 8
+        local_noiseFreqMidIDX = 9
+        noise_atten = 60
+        for i in range(len(only_amplitude)):
+            if only_amplitude[i][local_noiseFreqMinIDX] != 0:
+                only_amplitude[i][local_noiseFreqMidIDX] = int(only_amplitude[i][local_noiseFreqMinIDX] * (
+                    only_amplitude[i][local_noiseFreqMaxIDX] / only_amplitude[i][local_noiseFreqMinIDX]) ** (
+                    1 / 2) + 1)
+                only_amplitude[i][local_preStimAttenIDX] = noise_atten
+        return only_amplitude
+
+    def raw_to_amplitude_old(self, extracted_data):
+        # HINT: 6 is the index of the headerline
+
+        # extract the maximal amplitude of each trial
+        for idx in range(len(extracted_data)):
+            # get the filtered rms of x, y, z
+            data = self.rms(
+                extracted_data[idx][0], extracted_data[idx][1], extracted_data[idx][2])
             extracted_data[idx][6][0] = self.get_max(data)
 
         only_amplitude = np.zeros((len(extracted_data), 10))
@@ -483,7 +520,6 @@ class measurementGui(QtWidgets.QWidget):
             return False, "\n".join(errors)
         # if not, everything is fine
         return True, "Mouse %s measured by %s in state %s" % (self.textEdit_Mousname.text(), self.textEdit_Experimenter.text(), self.textEdit_status.text())
-
 
     ##########low pass filter##########
     def butter_lowpass(self, cutoff, oder, sf):

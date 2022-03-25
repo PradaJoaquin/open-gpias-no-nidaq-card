@@ -25,6 +25,9 @@ import numpy as np
 import time
 from qtpy import QtCore
 
+import soundcard as sc
+import numpy
+
 try:
     import PyDAQmx as daq
 except NotImplementedError as err:
@@ -183,6 +186,28 @@ class Measurement(QtCore.QObject):
         """
         rate = self.config.recordingrate  # sampling rate of measurement
         num_data_points = int(duration_ms * rate / 1000)
+
+        self.data = np.zeros((6 * num_data_points,), dtype=np.float64)
+
+        self.data = sc.default_microphone().record(
+            samplerate=rate, numframes=num_data_points, channels=1)
+        self.data = np.concatenate(self.data, axis=None)
+        self.data = np.repeat(self.data, 6)
+        print(self.data)
+
+        # self.data = sd.rec(int(duration_ms / 1000),
+        #                   samplerate = rate, channels = 1)
+        # print(self.data)
+
+        return self.data
+
+    def perform_nidaq_recording_old(self, duration_ms):
+        """
+        performs the measurement using a NI-DAQ card
+        it performs the measurement for duration_ms milliseconds
+        """
+        rate = self.config.recordingrate  # sampling rate of measurement
+        num_data_points = int(duration_ms * rate / 1000)
         self.data = np.zeros((6 * num_data_points,), dtype=np.float64)
         # try to connect to NiDAQ Card. If not return dummy measurement
         try:
@@ -229,10 +254,60 @@ class Measurement(QtCore.QObject):
         data_extracted[idxStartle][6][1:9] = this_trial
 
         # normalize the acceleration sensor results
+        #data[0] /= np.array(self.config.acceleration_sensor_factors)[:, None]
+
+        return data_extracted, True
+
+        # find the first frame where the trigger is higher than the threshold
+        # data[3] is the threshold channel
+
+        try:
+            i = findPlateauRegion(data[3], thresh, 10)
+        except IndexError:
+            self.error.emit("No trigger in measurement.")
+            # no trigger pulse found
+            return data_extracted, False
+
+        # trigger pulse too early
+        if i < 0.5 * self.config.recordingrate:
+            self.error.emit("Trigger too early measurement.")
+            raise RuntimeError("There was a trigger in the first 0.5 seconds of the data, this is not supposed to "
+                               "happen! Check config array and trigger channel (ai03).")
+
+        # eliminate offset by taking the mean of the data without stimuli
+        # and subtract it from all the data before plotting
+        offset = data[:3, int(i - 0.8 * self.config.recordingrate):i]
+        offset_mean = np.mean(offset, axis=1)
+
+        # extract all data 800ms prior to trigger
+        data = data[:, int(i - 0.8 * self.config.recordingrate):int(i -
+                                                                    0.8 * self.config.recordingrate) + data_extracted.shape[2]]
+        # subtract the xyz offset
+        data[:3, :] -= offset_mean[:, None]
+        # add the data to the extracted data array
+        data_extracted[idxStartle, 0:6, :] = data
+
+        return data_extracted, True
+
+    def extract_data_old(self, data, data_extracted, idxStartle, this_trial):
+        """
+        update matrix which holds the extracted Data
+        data is all data
+        data_extracted is data of prior iterations and empty rows for coming iterations
+        rate: sample rate of measurement
+        """
+        data = data.reshape(6, len(data)//6)
+        thresh = 0.2  # threshold für Trigger
+
+        # save which measurement was performed
+        data_extracted[idxStartle][6][1:9] = this_trial
+
+        # normalize the acceleration sensor results
         data[:3] /= np.array(self.config.acceleration_sensor_factors)[:, None]
 
         # find the first frame where the trigger is higher than the threshold
         # data[3] is the threshold channel
+
         try:
             i = findPlateauRegion(data[3], thresh, 10)
         except IndexError:
