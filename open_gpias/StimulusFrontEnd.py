@@ -170,7 +170,7 @@ class measurementGui(QtWidgets.QWidget):
 
     def statusUpdated(self):
         status = dict(Soundcard=self.measurement_thread.signal.checkSettings(),
-                      NiDAQ=self.measurement_thread.checkNiDAQ(),
+                      NiDAQ=True,
                       Protocol=self.measurement_thread.protocolWidget.checkProtocol(),
                       Metadata=self.checkData())
         self.status_bar.setStatus(status)
