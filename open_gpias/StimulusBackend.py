@@ -32,7 +32,7 @@ except NotImplementedError as err:
 import ctypes
 
 from .soundSignal import Signal
-
+import SoundcardRecording
 
 def findPlateauRegion(data, thresh, min_width):
     high_indices = np.where(data > thresh)[0]
@@ -100,7 +100,10 @@ class Measurement(QtCore.QObject):
             stimulation_duration = self.play_stimulation(this_trial)
 
             # record the sound and acceleration
-            data = self.perform_nidaq_recording(stimulation_duration).copy()
+            #data = self.perform_nidaq_recording(stimulation_duration).copy()
+            
+            # Record and format soundcard audio data
+            data = SoundcardRecording.perform_soundcard_recording(stimulation_duration, self.config.recordingrate)
 
             # post-process the recorded data
             data_extracted, found_threshold = self.extract_data(data, data_extracted, idxStartle, this_trial)
@@ -222,7 +225,10 @@ class Measurement(QtCore.QObject):
         data_extracted is data of prior iterations and empty rows for coming iterations
         rate: sample rate of measurement
         """
-        data = data.reshape(6, len(data)//6)
+        
+        # Not needed as we output data in this format
+        # data = data.reshape(6, len(data)//6)
+        
         thresh = 0.2  # threshold für Trigger
 
         # save which measurement was performed
