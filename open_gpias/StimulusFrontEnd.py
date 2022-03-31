@@ -343,7 +343,7 @@ class measurementGui(QtWidgets.QWidget):
         """ check if animal has moved before noise burst """
         # data until threshold
         val = data[:8000]
-        if max(val) > self.config.acceleration_threshold:
+        if max(val) > float(self.config.acceleration_threshold):
             return False
         else:
             return True
@@ -367,7 +367,7 @@ class measurementGui(QtWidgets.QWidget):
         data_yf = self.butter_lowpass_filter(data_y)
         data_zf = self.butter_lowpass_filter(data_z)
 
-        sensitivity = self.config.acceleration_sensor_sensitivity_v_to_g
+        sensitivity = float(self.config.acceleration_sensor_sensitivity_v_to_g)
         data = np.sqrt((data_xf / sensitivity) ** 2 + (data_yf / sensitivity) ** 2 + (data_zf / sensitivity) ** 2)
         return data
 

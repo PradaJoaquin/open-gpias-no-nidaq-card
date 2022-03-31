@@ -239,18 +239,21 @@ class Measurement(QtCore.QObject):
 
         # find the first frame where the trigger is higher than the threshold
         # data[3] is the threshold channel
-        try:
-            i = findPlateauRegion(data[3], thresh, 10)
-        except IndexError:
-            self.error.emit("No trigger in measurement.")
-            # no trigger pulse found
-            return data_extracted, False
+        # try:
+        #     i = findPlateauRegion(data[3], thresh, 10)
+        # except IndexError:
+        #     self.error.emit("No trigger in measurement.")
+        #     # no trigger pulse found
+        #     return data_extracted, False
+
+        #TODO: Calcuate i correctly
+        i = int(0.8 * int(self.config.recordingrate))
 
         # trigger pulse too early
-        if i < 0.5 * self.config.recordingrate:
-            self.error.emit("Trigger too early measurement.")
-            raise RuntimeError("There was a trigger in the first 0.5 seconds of the data, this is not supposed to "
-                               "happen! Check config array and trigger channel (ai03).")
+        # if i < 0.5 * self.config.recordingrate:
+        #     self.error.emit("Trigger too early measurement.")
+        #     raise RuntimeError("There was a trigger in the first 0.5 seconds of the data, this is not supposed to "
+        #                        "happen! Check config array and trigger channel (ai03).")
 
         # eliminate offset by taking the mean of the data without stimuli
         # and subtract it from all the data before plotting
