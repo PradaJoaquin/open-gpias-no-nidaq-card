@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ASR-Setup. If not, see <http://www.gnu.org/licenses/>
 
+import os
 from qtpy import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -99,6 +100,10 @@ class plotWidget(QtWidgets.QWidget):
         self.plot_total()
 
         self.canvas.draw()
+
+        #TODO: Save plot correctly
+        path = os.path.expanduser(f'~/Desktop/OpenGPIAS/{self.title}.png')
+        plt.savefig(path)
 
     def plot(self):
         # check if animal has moved
