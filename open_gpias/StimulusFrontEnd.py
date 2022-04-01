@@ -20,7 +20,6 @@
 # along with ASR-Setup. If not, see <http://www.gnu.org/licenses/>
 
 import os
-import sys
 import time
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
@@ -115,31 +114,10 @@ class measurementGui(QtWidgets.QWidget):
 
         self.textEdit_out.addLog("Program started")
 
-        if 0:
-            data = np.load(r"D:\Repositories\open_gpias\open_gpias\Achim_LS01_pre__turner_and_threshold_2018.npy")
-
-            self.plt_index = 10
-            self.plot_it(data, self.plt_index)
-
-            layout_navigate = QtWidgets.QHBoxLayout(self)
-            layout_properties.addLayout(layout_navigate)
-            gui_helpers.addPushButton(layout_navigate, "", self.navigateLeft, icon=qta.icon("fa.arrow-left"))
-            self.label_title = QtWidgets.QSpinBox()
-            self.label_title.setSuffix(" / 0")
-            self.label_title.setPrefix("Trial ")
-            self.label_title.setRange(0, 400)
-            self.label_title.setAlignment(QtCore.Qt.AlignCenter)
-            self.label_title.valueChanged.connect(self.plotOutputSignal)
-            layout_navigate.addWidget(self.label_title)
-            gui_helpers.addPushButton(layout_navigate, "", self.navigateRight, icon=qta.icon("fa.arrow-right"))
 
     def navigateLeft(self):
         self.plt_index -= 1
         self.label_title.setValue(self.plt_index)
-
-    def plotOutputSignal(self):
-        data = np.load(r"D:\Repositories\open_gpias\open_gpias\Achim_LS01_pre__turner_and_threshold_2018.npy")
-        self.plot_it(data, self.plt_index)
 
     def navigateRight(self):
         self.plt_index += 1
@@ -219,6 +197,14 @@ class measurementGui(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, 'Error', message)
             return
 
+        # Setup output dir
+        metadata = self.metadata = [self.textEdit_Experimenter.text(), self.textEdit_Mousname.text(),
+                               self.textEdit_status.text(), self.timeString]
+        self.dirname = os.path.join(*metadata)
+        self.output_dir = os.path.join(self.config.output_directory, self.config.directory_measurements, self.dirname)
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+
         # If the measurement is paused, resume it
         if self.measurement_thread.pause:
             self.measurement_thread.pause = False
@@ -247,18 +233,14 @@ class measurementGui(QtWidgets.QWidget):
 
     def save_backup(self, data_extracted):
         self.save_data(data_extracted, finished=False)
-        return
-        if self.backup_plot_count >= 10:
-            self.save_data(data_extracted, finished=False)
-            self.backup_plot_count = 0
-        else:
-            self.backup_plot_count += 1
 
     def plot_it(self, data, idx):
         """ provide the plot with the data """
         print("plot_id", data.shape, idx)
         self.plot.setData(data[idx, :, :], idx)
         data[idx][6][0] = self.plot.get_max()
+        if idx >= 0:
+            self.plot.save_plot(self.output_dir)
 
     def m_finished(self, data_extracted, empty):
         self.save_data(data_extracted, finished=True)
@@ -295,22 +277,15 @@ class measurementGui(QtWidgets.QWidget):
         fileNameEnding = self.measurement_thread.protocolWidget.getProtocolName()
 
         # get the string from the metadata
-        metadata = [self.textEdit_Experimenter.text(), self.textEdit_Mousname.text(),
-                               self.textEdit_status.text(), self.timeString]
-
-        # join the directory tree
-        dirname = os.path.join(*metadata)
+        metadata = self.metadata
 
         # join the data into the filename
         filename = "UNFINISHED_" + "_".join(metadata)
 
         # get the output directories
-        directory = os.path.join(self.config.output_directory, self.config.directory_measurements, dirname)
+        directory = self.output_dir
+        dirname = self.dirname
         directory_backup = os.path.join(self.config.output_directory, self.config.directory_backup, dirname)
-
-        # create directory
-        if not os.path.exists(directory):
-            os.makedirs(directory)
 
         # save the data to the backup folder
         np.save(os.path.join(directory, filename + '_extracted_data.npy'), data_extracted)
@@ -332,8 +307,7 @@ class measurementGui(QtWidgets.QWidget):
             np.save(os.path.join(directory, filename.replace("UNFINISHED_", "") + '_amplitudes.npy'), only_amplitudes)
 
             # create the directory for the backup
-            if not os.path.exists(directory_backup):
-                os.makedirs(directory_backup)
+            os.makedirs(directory_backup, exist_ok=True)
 
             # save the data to the backup folder
             np.save(os.path.join(directory_backup, filename.replace("UNFINISHED_", "") + '_extracted_data.npy'),
