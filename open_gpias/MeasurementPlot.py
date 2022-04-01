@@ -60,7 +60,7 @@ class plotWidget(QtWidgets.QWidget):
 
     def setData(self, data, number):
         self.idx = number
-        self.title = "Plot" + str(number + 1)
+        self.title = "Plot Trial " + str(number + 1)
 
         # create a pandas dataframe from the recorded data
         self.data = pd.DataFrame(data.T, columns=["x", "y", "z", "trigger", "stimulus", "burst", "protocol"])
@@ -100,10 +100,6 @@ class plotWidget(QtWidgets.QWidget):
         self.plot_total()
 
         self.canvas.draw()
-
-        #TODO: Save plot correctly
-        path = os.path.expanduser(f'~/Desktop/OpenGPIAS/{self.title}.png')
-        plt.savefig(path)
 
     def plot(self):
         # check if animal has moved
@@ -211,6 +207,14 @@ class plotWidget(QtWidgets.QWidget):
         ax.axvline(x=700, color='g', label='prestimulus')
         ax.axvline(x=800, color='r', label='noise burst')
         ax.legend(loc='upper left', bbox_to_anchor=(1, 1), shadow=True, ncol=1)
+
+    def save_plot(self, dir_path):
+        formats = ['jpg', 'png', 'svg', 'pdf']
+        paths = [os.path.join(dir_path, f, f'{self.title}.{f}') for f in formats]
+        for path in paths:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            plt.savefig(path)
+
 
     def get_max(self):
         """
