@@ -213,7 +213,7 @@ class plotWidget(QtWidgets.QWidget):
         paths = [os.path.join(dir_path, f, f'{self.title}.{f}') for f in formats]
         for path in paths:
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            plt.savefig(path)
+            self.figure.savefig(path)
 
 
     def get_max(self):
