@@ -34,6 +34,9 @@ import ctypes
 from .soundSignal import Signal
 import SoundcardRecording
 
+from datetime import datetime
+
+
 def findPlateauRegion(data, thresh, min_width):
     high_indices = np.where(data > thresh)[0]
     count = 0
@@ -51,7 +54,8 @@ def findPlateauRegion(data, thresh, min_width):
 
 
 class Measurement(QtCore.QObject):
-    trial_finished = QtCore.Signal('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
+    trial_finished = QtCore.Signal(
+        'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
     measurement_finished = QtCore.Signal('PyQt_PyObject', 'PyQt_PyObject')
     error = QtCore.Signal(str)
 
@@ -80,7 +84,8 @@ class Measurement(QtCore.QObject):
         self.protocol = self.protocolWidget.protocol
 
         # extracted measured data of the form [trial number][channel][data]
-        data_extracted = np.zeros((len(self.protocol), 7, int(0.95 * self.config.recordingrate) + 2))
+        data_extracted = np.zeros(
+            (len(self.protocol), 7, int(0.95 * self.config.recordingrate) + 2))
 
         # notify main thread, that the measurement will be started
         self.trial_finished.emit(data_extracted, -1, self.protocol)
@@ -101,12 +106,14 @@ class Measurement(QtCore.QObject):
 
             # record the sound and acceleration
             #data = self.perform_nidaq_recording(stimulation_duration).copy()
-            
+
             # Record and format soundcard audio data
-            data = SoundcardRecording.perform_soundcard_recording(stimulation_duration, self.config.recordingrate)
+            (self.recording_time, data) = SoundcardRecording.perform_soundcard_recording(
+                stimulation_duration, self.config.recordingrate)
 
             # post-process the recorded data
-            data_extracted, found_threshold = self.extract_data(data, data_extracted, idxStartle, this_trial)
+            data_extracted, found_threshold = self.extract_data(
+                data, data_extracted, idxStartle, this_trial)
 
             # notify the main thread that the trial is finished
             self.trial_finished.emit(data_extracted, idxStartle, self.protocol)
@@ -137,7 +144,11 @@ class Measurement(QtCore.QObject):
     def play(self, matrix_to_play):
 
         try:
-            sd.play(matrix_to_play, samplerate=self.config.samplerate, device=self.config.device)
+            print(
+                f"DEFAULT LOW LATENCY: {sd.query_devices(device=self.config.device)['default_low_output_latency']}")
+            self.play_time = datetime.now()
+            sd.play(matrix_to_play, samplerate=self.config.samplerate,
+                    device=self.config.device)
         except ValueError:
             i = -1
             for i in range(1000):
@@ -145,7 +156,8 @@ class Measurement(QtCore.QObject):
                 if sd.query_devices(i)["name"] == self.config.device:
                     break
             try:
-                sd.play(matrix_to_play, samplerate=self.config.samplerate, device=i)
+                sd.play(matrix_to_play,
+                        samplerate=self.config.samplerate, device=i)
             except sd.PortAudioError as err:
                 self.error.emit(str(err))
         except sd.PortAudioError as err:
@@ -157,8 +169,10 @@ class Measurement(QtCore.QObject):
         careful this is the time the stimulation needs in ms, there is no buffer included
         the needed buffer may depend on the soundcard
         """
-        matrix_to_play, duration = self.signal.getSignalFromProtocol(this_trial)
-        self.play(matrix_to_play)
+        self.matrix_to_play, duration = self.signal.getSignalFromProtocol(
+            this_trial)
+
+        self.play(self.matrix_to_play)
         # perform the measurement of the data
         # 1000 ms is the buffer that is needed usually because sd.play doesn't start the sound immediately
         # the buffer that is needed may depend on the soundcard you use
@@ -175,7 +189,8 @@ class Measurement(QtCore.QObject):
         name = bytes(self.config.recording_device, 'utf-8') + b'/ai0:5'
         analog_input.CreateAIVoltageChan(name, b'', daq.DAQmx_Val_Cfg_Default,
                                          -10., 10., daq.DAQmx_Val_Volts, None)
-        analog_input.CfgSampClkTiming(b'', self.config.recordingrate, daq.DAQmx_Val_Rising, daq.DAQmx_Val_FiniteSamps, 1000)
+        analog_input.CfgSampClkTiming(
+            b'', self.config.recordingrate, daq.DAQmx_Val_Rising, daq.DAQmx_Val_FiniteSamps, 1000)
         # return the status
         return True, "niDAQmx device %s ready to record channels ai0-5 at %d Hz" % (self.config.recording_device, self.config.recordingrate)
 
@@ -206,7 +221,8 @@ class Measurement(QtCore.QObject):
         name = bytes(self.config.recording_device, 'utf-8') + b'/ai0:5'
         analog_input.CreateAIVoltageChan(name, b'', daq.DAQmx_Val_Cfg_Default, -10., 10., daq.DAQmx_Val_Volts,
                                          None)
-        analog_input.CfgSampClkTiming(b'', rate, daq.DAQmx_Val_Rising, daq.DAQmx_Val_FiniteSamps, num_data_points)
+        analog_input.CfgSampClkTiming(
+            b'', rate, daq.DAQmx_Val_Rising, daq.DAQmx_Val_FiniteSamps, num_data_points)
 
         # DAQmx Start Code
         analog_input.StartTask()
@@ -225,10 +241,10 @@ class Measurement(QtCore.QObject):
         data_extracted is data of prior iterations and empty rows for coming iterations
         rate: sample rate of measurement
         """
-        
+
         # Not needed as we output data in this format
         # data = data.reshape(6, len(data)//6)
-        
+
         thresh = 0.2  # threshold für Trigger
 
         # save which measurement was performed
@@ -246,7 +262,7 @@ class Measurement(QtCore.QObject):
         #     # no trigger pulse found
         #     return data_extracted, False
 
-        #TODO: Calcuate i correctly
+        # TODO: Calcuate i correctly
         i = int(0.8 * int(self.config.recordingrate))
 
         # trigger pulse too early
@@ -261,7 +277,8 @@ class Measurement(QtCore.QObject):
         offset_mean = np.mean(offset, axis=1)
 
         # extract all data 800ms prior to trigger
-        data = data[:, int(i - 0.8 * self.config.recordingrate):int(i - 0.8 * self.config.recordingrate) + data_extracted.shape[2]]
+        data = data[:, int(i - 0.8 * self.config.recordingrate):int(i -
+                                                                    0.8 * self.config.recordingrate) + data_extracted.shape[2]]
         # subtract the xyz offset
         data[:3, :] -= offset_mean[:, None]
         # add the data to the extracted data array

@@ -1,5 +1,6 @@
 import numpy as np
 import soundcard as sc
+from datetime import datetime
 
 def perform_soundcard_recording(duration_ms, recordingrate):
     rate = recordingrate  # sampling rate of measurement
@@ -15,6 +16,7 @@ def perform_soundcard_recording(duration_ms, recordingrate):
     # channel ai5: startle-stimulus
 
     default_mic = sc.default_microphone()
+    recording_time = datetime.now()
     raw_data = default_mic.record(samplerate=rate, numframes=num_data_points)
 
     for idx, sample in enumerate(raw_data):
@@ -25,4 +27,4 @@ def perform_soundcard_recording(duration_ms, recordingrate):
         data[4][idx] = 0 # pre-stimulus
         data[5][idx] = 0 # startle-stimulus
 
-    return data
+    return (recording_time, data)
