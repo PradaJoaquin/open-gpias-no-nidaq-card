@@ -1,5 +1,7 @@
 import numpy as np
 import soundcard as sc
+import os
+from scipy.io import wavfile
 from datetime import datetime
 
 def perform_soundcard_recording(duration_ms, recordingrate):
@@ -19,10 +21,15 @@ def perform_soundcard_recording(duration_ms, recordingrate):
     recording_time = datetime.now()
     raw_data = default_mic.record(samplerate=rate, numframes=num_data_points)
 
+    out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
+    filepath = os.path.join(out_dir, f"recording_{recording_time.isoformat()}.wav")
+
+    wavfile.write(filepath, rate, raw_data.astype(np.float32))
+
     for idx, sample in enumerate(raw_data):
         sample = sample[0]
         time = float(idx) / rate
-        data[0][idx] = data[1][idx] = data[2][idx] = float(sample*10) # xyz data
+        data[0][idx] = data[1][idx] = data[2][idx] = float(sample) # xyz data
         data[3][idx] = 0 # trigger pulse
         data[4][idx] = 0 # pre-stimulus
         data[5][idx] = 0 # startle-stimulus

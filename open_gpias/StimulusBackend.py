@@ -20,9 +20,13 @@
 # along with ASR-Setup. If not, see <http://www.gnu.org/licenses/>
 
 import sys
+import os
 import sounddevice as sd
 import numpy as np
 import time
+import wave
+from scipy.io import wavfile
+from datetime import datetime
 from qtpy import QtCore
 
 try:
@@ -176,6 +180,15 @@ class Measurement(QtCore.QObject):
         # perform the measurement of the data
         # 1000 ms is the buffer that is needed usually because sd.play doesn't start the sound immediately
         # the buffer that is needed may depend on the soundcard you use
+
+        out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
+        filepath = os.path.join(out_dir, f"playback_{datetime.now().isoformat()}.wav")
+
+        wav_data = self.matrix_to_play.astype(np.float32)
+        wav_data = np.pad(wav_data, ((0,self.config.samplerate), (0,0)), 'constant', constant_values=(0))
+
+        wavfile.write(filepath, self.config.samplerate, wav_data)
+
         return duration + 1000
 
     def checkNiDAQ(self):
