@@ -32,7 +32,7 @@ except NotImplementedError as err:
 import ctypes
 
 from .soundSignal import Signal
-import SoundcardRecording
+from . import SoundcardRecording
 
 from datetime import datetime
 
