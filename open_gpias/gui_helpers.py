@@ -111,7 +111,7 @@ class QLogWidget(QtWidgets.QTextEdit):
         directory = user_data_dir("OpenGPIAS")
 
         if not os.path.exists(directory):
-            os.mkdir(directory)
+            os.makedirs(directory, exist_ok=True)
         log_filename = os.path.join(directory , time.strftime("%Y-%m")+"_log.txt")
         with open(log_filename, "a") as fp:
             fp.write(status)
