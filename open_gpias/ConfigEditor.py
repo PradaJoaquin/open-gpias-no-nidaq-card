@@ -27,7 +27,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 import qtawesome as qta
 from open_gpias import gui_helpers
 import sounddevice as sd
-
+from appdirs import *
 
 # add exception hook hack to prevent from python just crashing without throwing an exception, which occurs on some Qt5 installations
 def my_excepthook(type, value, tback):
@@ -39,8 +39,7 @@ def file_iter(file):
         yield line.strip()
 
 
-config_filename = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "Local", "OpenGPIAS", "config.txt"))
-
+config_filename = os.path.join(user_data_dir("OpenGPIAS"), "config.txt")
 
 class Config:
     device = ""
@@ -55,7 +54,7 @@ class Config:
     recordingrate = 10000
     recording_device = "Dev2"
 
-    output_directory = os.path.normpath(os.path.join(os.getenv('APPDATA'), "..", "..", "Desktop", "OpenGPIAS"))
+    output_directory = os.path.normpath(os.path.expanduser("~/Desktop/OpenGPIAS"))
 
     directory_backup = "Backup"
     directory_measurements = "Measurements"

@@ -20,6 +20,7 @@
 # along with ASR-Setup. If not, see <http://www.gnu.org/licenses/>
 
 from qtpy import QtCore, QtGui, QtWidgets
+from appdirs import *
 import qtawesome as qta
 import datetime
 import os
@@ -107,7 +108,8 @@ class QLogWidget(QtWidgets.QTextEdit):
         self.log_texts += status
 
         # add the log text to the logfile
-        directory = os.path.join(os.getenv('APPDATA'), "Open_GPIAS")
+        directory = user_data_dir("OpenGPIAS")
+
         if not os.path.exists(directory):
             os.mkdir(directory)
         log_filename = os.path.join(directory , time.strftime("%Y-%m")+"_log.txt")
