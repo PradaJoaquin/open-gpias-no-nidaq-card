@@ -8,13 +8,6 @@ def perform_soundcard_recording(duration_ms, recordingrate):
     rate = recordingrate  # sampling rate of measurement
     num_data_points = int(duration_ms * rate / 1000)
 
-    # channel ai0: x-Data
-    # channel ai1: y-Data
-    # channel ai2: z-Data
-    # channel ai3: trigger pulse
-    # channel ai4: pre-stimulus
-    # channel ai5: startle-stimulus
-
     default_mic = sc.default_microphone()
     recording_time = datetime.now()
     raw_data = default_mic.record(samplerate=rate, numframes=num_data_points, channels=1)
@@ -34,6 +27,14 @@ def process_recording(rec_data, recording_rate, playback_data, playback_rate):
 
     # TODO: Optimize with numpy.recording_rate
     data = np.zeros((6, num_data_points), dtype=np.float64)
+
+    # channel ai0: x-Data
+    # channel ai1: y-Data
+    # channel ai2: z-Data
+    # channel ai3: trigger pulse
+    # channel ai4: pre-stimulus
+    # channel ai5: startle-stimulus
+    
     for rec_idx, rec_sample in enumerate(rec_data):
         t = float(rec_idx) / recording_rate
         pb_idx = int(t * playback_rate)
