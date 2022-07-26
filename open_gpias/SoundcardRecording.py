@@ -36,6 +36,14 @@ def process_recording(rec_data, recording_rate, playback_data, playback_rate):
 
     # TODO: Optimize with numpy.recording_rate
     data = np.zeros((6, num_data_points), dtype=np.float64)
+
+    # channel ai0: x-Data
+    # channel ai1: y-Data
+    # channel ai2: z-Data
+    # channel ai3: trigger pulse
+    # channel ai4: pre-stimulus
+    # channel ai5: startle-stimulus
+    
     for rec_idx, rec_sample in enumerate(rec_data):
         t = float(rec_idx) / recording_rate
         pb_idx = int(t * playback_rate)
