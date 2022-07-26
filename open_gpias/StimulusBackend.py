@@ -112,8 +112,10 @@ class Measurement(QtCore.QObject):
             #data = self.perform_nidaq_recording(stimulation_duration).copy()
 
             # Record and format soundcard audio data
-            (self.recording_time, data) = SoundcardRecording.perform_soundcard_recording(
+            (self.recording_time, recording_data) = SoundcardRecording.perform_soundcard_recording(
                 stimulation_duration, self.config.recordingrate)
+
+            data = SoundcardRecording.process_recording(recording_data, self.config.recordingrate, self.matrix_to_play, self.config.samplerate)
 
             # post-process the recorded data
             data_extracted, found_threshold = self.extract_data(
@@ -181,11 +183,13 @@ class Measurement(QtCore.QObject):
         # 1000 ms is the buffer that is needed usually because sd.play doesn't start the sound immediately
         # the buffer that is needed may depend on the soundcard you use
 
+        playback_time = datetime.now()
         out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
-        filepath = os.path.join(out_dir, f"playback_{datetime.now().isoformat()}.wav")
+        filepath = os.path.join(out_dir, f"playback_{playback_time.isoformat()}.wav")
 
         wav_data = self.matrix_to_play.astype(np.float32)
-        wav_data = np.pad(wav_data, ((0,self.config.samplerate), (0,0)), 'constant', constant_values=(0))
+        # pad_len = abs(len(wav_data) - len(self.matrix_to_play))
+        # wav_data = np.pad(wav_data, ((0,self.config.samplerate), (0,0)), 'constant', constant_values=(0))
 
         wavfile.write(filepath, self.config.samplerate, wav_data)
 
@@ -268,21 +272,21 @@ class Measurement(QtCore.QObject):
 
         # find the first frame where the trigger is higher than the threshold
         # data[3] is the threshold channel
-        # try:
-        #     i = findPlateauRegion(data[3], thresh, 10)
-        # except IndexError:
-        #     self.error.emit("No trigger in measurement.")
-        #     # no trigger pulse found
-        #     return data_extracted, False
+        try:
+            i = findPlateauRegion(data[3], thresh, 10)
+        except IndexError:
+            self.error.emit("No trigger in measurement.")
+            # no trigger pulse found
+            return data_extracted, False
 
         # TODO: Calcuate i correctly
         i = int(0.8 * int(self.config.recordingrate))
 
         # trigger pulse too early
-        # if i < 0.5 * self.config.recordingrate:
-        #     self.error.emit("Trigger too early measurement.")
-        #     raise RuntimeError("There was a trigger in the first 0.5 seconds of the data, this is not supposed to "
-        #                        "happen! Check config array and trigger channel (ai03).")
+        if i < 0.5 * self.config.recordingrate:
+            self.error.emit("Trigger too early measurement.")
+            raise RuntimeError("There was a trigger in the first 0.5 seconds of the data, this is not supposed to "
+                               "happen! Check config array and trigger channel (ai03).")
 
         # eliminate offset by taking the mean of the data without stimuli
         # and subtract it from all the data before plotting

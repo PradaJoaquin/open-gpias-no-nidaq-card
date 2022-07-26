@@ -8,7 +8,7 @@
             "name": "Open_GPIAS",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/open_gpias/start.py",
+            "program": "${workspaceFolder}/start.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }
