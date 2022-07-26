@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ASR-Setup. If not, see <http://www.gnu.org/licenses/>
 
+from email.policy import default
 import sys
 import os
 import sounddevice as sd
@@ -106,16 +107,16 @@ class Measurement(QtCore.QObject):
             this_trial = self.protocol[idxStartle]
 
             # play the trial
-            stimulation_duration = self.play_stimulation(this_trial)
+            (rec_data, play_data) = self.play_rec(this_trial)
 
             # record the sound and acceleration
             #data = self.perform_nidaq_recording(stimulation_duration).copy()
 
             # Record and format soundcard audio data
-            (self.recording_time, recording_data) = SoundcardRecording.perform_soundcard_recording(
-                stimulation_duration, self.config.recordingrate)
+            #(self.recording_time, recording_data) = SoundcardRecording.perform_soundcard_recording(
+            #    stimulation_duration, self.config.recordingrate)
 
-            data = SoundcardRecording.process_recording(recording_data, self.config.recordingrate, self.matrix_to_play, self.config.samplerate)
+            data = SoundcardRecording.process_recording(rec_data, self.config.recordingrate, play_data, self.config.samplerate)
 
             # post-process the recorded data
             data_extracted, found_threshold = self.extract_data(
@@ -150,8 +151,6 @@ class Measurement(QtCore.QObject):
     def play(self, matrix_to_play):
 
         try:
-            print(
-                f"DEFAULT LOW LATENCY: {sd.query_devices(device=self.config.device)['default_low_output_latency']}")
             self.play_time = datetime.now()
             sd.play(matrix_to_play, samplerate=self.config.samplerate,
                     device=self.config.device)
@@ -169,7 +168,7 @@ class Measurement(QtCore.QObject):
         except sd.PortAudioError as err:
             self.error.emit(str(err))
 
-    def play_stimulation(self, this_trial):
+    def play_rec(self, this_trial):
         """
         play Stimulation sound and trigger returns time the stimulation plays in ms
         careful this is the time the stimulation needs in ms, there is no buffer included
@@ -178,22 +177,32 @@ class Measurement(QtCore.QObject):
         self.matrix_to_play, duration = self.signal.getSignalFromProtocol(
             this_trial)
 
-        self.play(self.matrix_to_play)
-        # perform the measurement of the data
-        # 1000 ms is the buffer that is needed usually because sd.play doesn't start the sound immediately
-        # the buffer that is needed may depend on the soundcard you use
+        time = datetime.now()
 
-        playback_time = datetime.now()
+        pad_len = self.config.samplerate # Add 1 second to recording
+        play_data = np.pad(self.matrix_to_play, ((0,pad_len), (0,0)), 'constant', constant_values=(0))
+
+        rec_data = sd.playrec(play_data, channels=2, samplerate=self.config.samplerate, blocking=True, latency='low')
+
+        #TODO: revisar
+        latency = sd.query_devices(kind='output')['default_low_output_latency'] + sd.query_devices(kind='input')['default_low_input_latency']
+        print(latency)
+
+        frame_offset = int(latency * self.config.samplerate)
+        rec_data = rec_data[frame_offset:]
+        rec_data = np.pad(rec_data, ((0,frame_offset), (0,0)), 'constant', constant_values=(0))
+
         out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
-        filepath = os.path.join(out_dir, f"playback_{playback_time.isoformat()}.wav")
+        filepath = os.path.normpath(os.path.join(out_dir, f"playback_{time.hour}-{time.minute}-{time.second}.wav"))
+        wavfile.write(filepath, self.config.samplerate, play_data.astype(np.float32))
 
-        wav_data = self.matrix_to_play.astype(np.float32)
+        filepath = os.path.normpath(os.path.join(out_dir, f"recording_{time.hour}-{time.minute}-{time.second}.wav"))
+        wavfile.write(filepath, self.config.samplerate, rec_data.astype(np.float32))
+
         # pad_len = abs(len(wav_data) - len(self.matrix_to_play))
         # wav_data = np.pad(wav_data, ((0,self.config.samplerate), (0,0)), 'constant', constant_values=(0))
 
-        wavfile.write(filepath, self.config.samplerate, wav_data)
-
-        return duration + 1000
+        return (rec_data, play_data)
 
     def checkNiDAQ(self):
         # check if a task can be created

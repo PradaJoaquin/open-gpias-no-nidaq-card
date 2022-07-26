@@ -1,5 +1,6 @@
 import numpy as np
 import soundcard as sc
+import sounddevice as sd
 import os
 from scipy.io import wavfile
 from datetime import datetime
@@ -15,14 +16,15 @@ def perform_soundcard_recording(duration_ms, recordingrate):
     # channel ai4: pre-stimulus
     # channel ai5: startle-stimulus
 
-    default_mic = sc.default_microphone()
+    # default_mic = sc.default_microphone()
     recording_time = datetime.now()
-    raw_data = default_mic.record(samplerate=rate, numframes=num_data_points, channels=1)
 
-    out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
-    filepath = os.path.join(out_dir, f"recording_{recording_time.isoformat()}.wav")
+    # with default_mic.recorder(samplerate=rate) as rec:
+    #     raw_data = rec.record(numframes=num_data_points, exclusive_mode=True)
 
-    wavfile.write(filepath, rate, raw_data.astype(np.float32))
+    #raw_data = sd.rec(frames=num_data_points, samplerate=rate, channels=2, blocking=True)
+
+    
 
     return (recording_time, raw_data)
 
@@ -41,7 +43,7 @@ def process_recording(rec_data, recording_rate, playback_data, playback_rate):
         # TODO: Find better way to handle different samplerates
         pb_sample = playback_data[pb_idx]
 
-        data[0][rec_idx] = data[1][rec_idx] = data[2][rec_idx] = float(rec_sample) # xyz data
+        data[0][rec_idx] = data[1][rec_idx] = data[2][rec_idx] = float(rec_sample[0]) # xyz data
         data[3][rec_idx] = data[5][rec_idx] = float(pb_sample[0]) # trigger pulse and startle-stimulus
         data[4][rec_idx] = float(pb_sample[1]) # pre-stimulus
 
