@@ -185,7 +185,7 @@ class Measurement(QtCore.QObject):
         rec_data = sd.playrec(play_data, channels=2, samplerate=self.config.samplerate, blocking=True, latency='low')
 
         #TODO: revisar
-        latency = sd.query_devices(kind='output')['default_low_output_latency'] + sd.query_devices(kind='input')['default_low_input_latency']
+        latency = sd.query_devices(sd.default.device[1])['default_low_output_latency'] + sd.query_devices(sd.default.device[0])['default_low_input_latency']
         print(latency)
 
         frame_offset = int(latency * self.config.samplerate)
