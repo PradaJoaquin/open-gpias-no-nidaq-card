@@ -199,9 +199,6 @@ class Measurement(QtCore.QObject):
         filepath = os.path.normpath(os.path.join(out_dir, f"recording_{time.hour}-{time.minute}-{time.second}.wav"))
         wavfile.write(filepath, self.config.samplerate, rec_data.astype(np.float32))
 
-        # pad_len = abs(len(wav_data) - len(self.matrix_to_play))
-        # wav_data = np.pad(wav_data, ((0,self.config.samplerate), (0,0)), 'constant', constant_values=(0))
-
         return (rec_data, play_data)
 
     def checkNiDAQ(self):
