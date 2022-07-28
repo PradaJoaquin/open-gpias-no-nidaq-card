@@ -10,6 +10,9 @@
             "request": "launch",
             "program": "${workspaceFolder}/start.py",
             "console": "integratedTerminal",
+            "env": {
+                "QT_FONT_DPI": "144"
+            },
             "justMyCode": true
         }
     ]
