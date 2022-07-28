@@ -180,7 +180,7 @@ class ConfigEditor(QtWidgets.QWidget):
         self.config.connect(self.input_profile_burst, "profile_loudspeaker_burst")
 
         self.input_recording_device = gui_helpers.addComboBox(layout_main, "recording device:", in_devices, in_dev_vals)
-        self.config.connect_combo_val(self.input_devices, "device")
+        self.config.connect_combo_val(self.input_recording_device, "recording_device")
 
         self.input_recordingrate = gui_helpers.addSpinBox(layout_main, "recording rate (Hz):", 10000, 1000, 100000, step=1000)
         self.config.connect(self.input_recordingrate, "recordingrate")
