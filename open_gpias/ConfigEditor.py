@@ -129,7 +129,7 @@ class Config:
     def connect_combo_val(self, widget, attr, index=None):
         if isinstance(widget, QtWidgets.QComboBox):
             widget.setCurrentIndex(widget.findData(self.getValue(attr, index)))
-            widget.currentIndexChanged.connect(lambda i: self.setValue(attr, i, index))
+            widget.currentIndexChanged.connect(lambda i: self.setValue(attr, widget.currentData(), index))
 
 
 class ConfigEditor(QtWidgets.QWidget):
