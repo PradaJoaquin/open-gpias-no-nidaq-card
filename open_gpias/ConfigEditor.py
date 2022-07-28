@@ -42,17 +42,17 @@ def file_iter(file):
 config_filename = os.path.join(user_data_dir("OpenGPIAS"), "config.txt")
 
 class Config:
-    device = ""
-    channels = [1, 2, 3]
-    samplerate = 96000
+    device = sd.default.device[1]
+    channels = [1, 2, 1]
+    samplerate = 48000
     channel_latency = [0., 0., 14.8125, 14.8125]
 
     profile_loudspeaker_noise = ""
     profile_loudspeaker_burst = ""
     speaker_amplification_factor = [0.000019, 0.001 / 3200]
 
-    recordingrate = 10000
-    recording_device = "Dev2"
+    recordingrate = 48000
+    recording_device = sd.default.device[0]
 
     output_directory = os.path.normpath(os.path.expanduser("~/Desktop/OpenGPIAS"))
 
@@ -126,6 +126,11 @@ class Config:
                 self.setValue(attr, widget.currentText(), index)
             widget.currentTextChanged.connect(lambda text: self.setValue(attr, text, index))
 
+    def connect_combo_val(self, widget, attr, index=None):
+        if isinstance(widget, QtWidgets.QComboBox):
+            widget.setCurrentIndex(widget.findData(self.getValue(attr, index)))
+            widget.currentIndexChanged.connect(lambda i: self.setValue(attr, widget.currentData(), index))
+
 
 class ConfigEditor(QtWidgets.QWidget):
 
@@ -136,15 +141,12 @@ class ConfigEditor(QtWidgets.QWidget):
 
         layout_main = QtWidgets.QVBoxLayout(self)
 
-        device_names = []
-        for i in range(255):
-            try:
-                device = sd.query_devices(i)
-            except sd.PortAudioError:
-                break
-            if device["max_output_channels"] > 0:
-                device_names.append(device["name"])
-
+        out_devices = [ d['name'] for d in sd.query_devices() if d["max_output_channels"] > 0 ]
+        out_dev_vals = [ i for i,d in enumerate(sd.query_devices()) if d["max_output_channels"] > 0 ]
+        
+        in_devices = [ d['name'] for d in sd.query_devices() if d["max_input_channels"] > 0 ]
+        in_dev_vals = [ i for i,d in enumerate(sd.query_devices()) if d["max_input_channels"] > 0 ]
+        
         self.config = Config()
         try:
             self.config.load(config_filename)
@@ -152,9 +154,10 @@ class ConfigEditor(QtWidgets.QWidget):
             pass
         print(self.config)
 
-        self.input_devices = gui_helpers.addComboBox(layout_main, "sound device:", device_names)
-        self.config.connect(self.input_devices, "device")
+        self.input_devices = gui_helpers.addComboBox(layout_main, "sound device:", out_devices, out_dev_vals)
+        self.config.connect_combo_val(self.input_devices, "device")
         self.input_devices.currentTextChanged.connect(self.selectDevice)
+
         self.channel_count = 0
         self.channel_trigger = gui_helpers.addComboBox(layout_main, "channel trigger:", [])
         self.channel_noise = gui_helpers.addComboBox(layout_main, "channel pre-stimulus:", [])
@@ -176,8 +179,8 @@ class ConfigEditor(QtWidgets.QWidget):
         self.input_profile_burst = gui_helpers.addFileChooser(layout_main, "equalizer profile loudspeaker startle-stimulus:", "", "*.npy")
         self.config.connect(self.input_profile_burst, "profile_loudspeaker_burst")
 
-        self.input_recording_device = gui_helpers.addLineEdit(layout_main, "recording device:", "Dev0", "")
-        self.config.connect(self.input_recording_device, "recording_device")
+        self.input_recording_device = gui_helpers.addComboBox(layout_main, "recording device:", in_devices, in_dev_vals)
+        self.config.connect_combo_val(self.input_recording_device, "recording_device")
 
         self.input_recordingrate = gui_helpers.addSpinBox(layout_main, "recording rate (Hz):", 10000, 1000, 100000, step=1000)
         self.config.connect(self.input_recordingrate, "recordingrate")
@@ -195,7 +198,6 @@ class ConfigEditor(QtWidgets.QWidget):
         layout_buttons = QtWidgets.QHBoxLayout()
         layout_main.addLayout(layout_buttons)
         self.button_save = gui_helpers.addPushButton(layout_buttons, "Save", self.save, icon=qta.icon("fa.save"))
-        self.button_save = gui_helpers.addPushButton(layout_buttons, "Cancel", self.close)
         self.selectDevice()
 
         self.config.connect(self.channel_trigger, "channels", 0)
@@ -213,28 +215,18 @@ class ConfigEditor(QtWidgets.QWidget):
             self.parent.settingsUpdated.emit()
 
     def selectDevice(self):
-        device_name = self.input_devices.currentText()
-        i = -1
-        first_valid_id = None
-        for i in range(1000):
-            i += 1
-            try:
-                name = sd.query_devices(i)["name"]
-                if first_valid_id is None:
-                    first_valid_id = i
-            except sd.PortAudioError:
-                continue
-            if name == device_name:
-                break
-        else:
-            i = first_valid_id
-        channels = sd.query_devices(i)["max_output_channels"]
+        device_idx = self.input_devices.currentData()
+        device = sd.query_devices(device_idx)   
+        
+        channels = device["max_output_channels"]
         for i in range(self.channel_count, channels):
             for comboBox in [self.channel_trigger, self.channel_noise, self.channel_burst]:
                 comboBox.addItems(["%d" % (i+1)])
+
         for i in np.arange(self.channel_count, channels-1, -1):
             for comboBox in [self.channel_trigger, self.channel_noise, self.channel_burst]:
                 comboBox.removeItem(i)
+
         self.channel_count = channels
 
 

@@ -182,6 +182,8 @@ class Measurement(QtCore.QObject):
         pad_len = self.config.samplerate # Add 1 second to recording
         play_data = np.pad(self.matrix_to_play, ((0,pad_len), (0,0)), 'constant', constant_values=(0))
 
+        sd.default.device = [self.config.recording_device, self.config.device]
+
         rec_data = sd.playrec(play_data, channels=2, samplerate=self.config.samplerate, blocking=True, latency='low')
 
         #TODO: revisar
