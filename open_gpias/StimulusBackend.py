@@ -277,16 +277,8 @@ class Measurement(QtCore.QObject):
         data[:3] /= np.array(self.config.acceleration_sensor_factors)[:, None]
 
         # find the first frame where the trigger is higher than the threshold
-        # data[3] is the threshold channel
-        try:
-            i = findPlateauRegion(data[3], thresh, 10)
-        except IndexError:
-            self.error.emit("No trigger in measurement.")
-            # no trigger pulse found
-            return data_extracted, False
-
-        # TODO: Calcuate i correctly
-        i = int(0.8 * int(self.config.recordingrate))
+        # data[3] is the trigger channel
+        i = np.argmax(data[3] > thresh)
 
         # trigger pulse too early
         if i < 0.5 * self.config.recordingrate:
