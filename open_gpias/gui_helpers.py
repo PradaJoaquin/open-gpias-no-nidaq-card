@@ -174,11 +174,18 @@ def addLCDNumber(layout, name):
     return edit
 
 
-def addComboBox(layout, name, values):
+def addComboBox(layout, name, values, data=None):
     addLabel(layout, name)
 
     edit = QtWidgets.QComboBox()
     edit.addItems(values)
+
+    if data:
+        if len(data) != len(values):
+            raise RuntimeError("data and values must have the same length")
+        for i,d in enumerate(data):
+            edit.setItemData(i, d)
+
     layout.addWidget(edit)
     return edit
 
