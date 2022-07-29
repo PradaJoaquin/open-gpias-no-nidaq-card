@@ -14,6 +14,7 @@ def process_recording(rec_data, playback_data):
     rec_data = np.stack(rec_data, axis=1)
     playback_data = np.stack(playback_data, axis=1)
 
+    # TODO: This does not work for different sample rates.
     data[0] = data[1] = data[2] = rec_data[0]
     data[3] = data[5] = playback_data[0]
     data[4] = playback_data[1]
