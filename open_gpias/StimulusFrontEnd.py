@@ -29,6 +29,7 @@ from . import StimulusBackend
 from . import gui_helpers
 from .MeasurementPlot import plotWidget
 
+from scipy.io import wavfile
 
 class measurementGui(QtWidgets.QWidget):
     timeString = ""
@@ -126,6 +127,7 @@ class measurementGui(QtWidgets.QWidget):
     def trialFinishedEvent(self, data_extracted, idxStartle, protocol):
         self.plot_it(data_extracted, idxStartle)
         self.save_backup(data_extracted)
+        self.save_wav(data_extracted, idxStartle)
         self.update_timer(protocol, idxStartle)
 
     def setButtonStatus(self, status):
@@ -233,6 +235,27 @@ class measurementGui(QtWidgets.QWidget):
 
     def save_backup(self, data_extracted):
         self.save_data(data_extracted, finished=False)
+
+    def save_wav(self, data_extracted, idxStartle):
+        # TrialFinishedEvent is called on index -1, so we prevent saving that wav.
+        if idxStartle < 0:
+            return
+        recordings_path = os.path.normpath(os.path.join(self.output_dir, "Recordings"))
+        trial_path = os.path.normpath(os.path.join(recordings_path, f"Trial {idxStartle}"))
+
+        # Playback
+        playback_path = os.path.normpath(os.path.join(trial_path, "playback.wav"))
+        os.makedirs(os.path.dirname(playback_path), exist_ok=True)
+        # Convert data to something that wav can understand. data_extracted[3] is the trigger pulse, data_extracted[4] is the pre-stimulus.
+        playback_data = np.column_stack((data_extracted[idxStartle][3].astype(np.float32), data_extracted[idxStartle][4].astype(np.float32)))
+        wavfile.write(playback_path, self.config.recordingrate, playback_data)
+
+        # Recording
+        recording_path = os.path.normpath(os.path.join(trial_path, "recording.wav"))
+        os.makedirs(os.path.dirname(recording_path), exist_ok=True)
+        # Convert data to something that wav can understand. data_extracted[0] is the only channel we have of the recording.
+        recording_data = data_extracted[idxStartle][0].astype(np.float32)
+        wavfile.write(recording_path, self.config.recordingrate, recording_data)    
 
     def plot_it(self, data, idx):
         """ provide the plot with the data """
