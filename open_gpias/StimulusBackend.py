@@ -21,12 +21,9 @@
 
 from email.policy import default
 import sys
-import os
 import sounddevice as sd
 import numpy as np
 import time
-import wave
-from scipy.io import wavfile
 from datetime import datetime
 from qtpy import QtCore
 
@@ -177,8 +174,6 @@ class Measurement(QtCore.QObject):
         self.matrix_to_play, duration = self.signal.getSignalFromProtocol(
             this_trial)
 
-        time = datetime.now()
-
         pad_len = self.config.samplerate # Add 1 second to recording
         play_data = np.pad(self.matrix_to_play, ((0,pad_len), (0,0)), 'constant', constant_values=(0))
 
@@ -194,12 +189,16 @@ class Measurement(QtCore.QObject):
         rec_data = rec_data[frame_offset:]
         rec_data = np.pad(rec_data, ((0,frame_offset), (0,0)), 'constant', constant_values=(0))
 
-        out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
-        filepath = os.path.normpath(os.path.join(out_dir, f"playback_{time.hour}-{time.minute}-{time.second}.wav"))
-        wavfile.write(filepath, self.config.samplerate, play_data.astype(np.float32))
+        # Code to save the wav of the entire recording and playback
 
-        filepath = os.path.normpath(os.path.join(out_dir, f"recording_{time.hour}-{time.minute}-{time.second}.wav"))
-        wavfile.write(filepath, self.config.samplerate, rec_data.astype(np.float32))
+        # time = datetime.now()
+
+        # out_dir = os.path.expanduser("~/Desktop/OpenGPIAS/")
+        # filepath = os.path.normpath(os.path.join(out_dir, f"playback_{time.hour}-{time.minute}-{time.second}.wav"))
+        # wavfile.write(filepath, self.config.samplerate, play_data.astype(np.float32))
+
+        # filepath = os.path.normpath(os.path.join(out_dir, f"recording_{time.hour}-{time.minute}-{time.second}.wav"))
+        # wavfile.write(filepath, self.config.samplerate, rec_data.astype(np.float32))
 
         return (rec_data, play_data)
 
