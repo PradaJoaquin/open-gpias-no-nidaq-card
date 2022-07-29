@@ -113,7 +113,7 @@ class Measurement(QtCore.QObject):
             #(self.recording_time, recording_data) = SoundcardRecording.perform_soundcard_recording(
             #    stimulation_duration, self.config.recordingrate)
 
-            data = SoundcardRecording.process_recording(rec_data, self.config.recordingrate, play_data, self.config.samplerate)
+            data = SoundcardRecording.process_recording(rec_data, play_data)
 
             # post-process the recorded data
             data_extracted, found_threshold = self.extract_data(
