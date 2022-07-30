@@ -298,10 +298,18 @@ category = "main"
 optional = false
 python-versions = ">=3.7"
 
+[[package]]
+name = "xlsxwriter"
+version = "3.0.3"
+description = "A Python module for creating Excel XLSX files."
+category = "main"
+optional = false
+python-versions = ">=3.4"
+
 [metadata]
 lock-version = "1.1"
-python-versions = "3.10"
-content-hash = "68ab2ca12917cdb6fee67d2a70d201d5f324fb19cb6a137b3db345b51274d39d"
+python-versions = "3.10.*"
+content-hash = "2a51618557ee0730ee0dd78c2affe4809699155aed1431581a9be80f31161f02"
 
 [metadata.files]
 appdirs = []
@@ -331,3 +339,4 @@ soundcard = []
 sounddevice = []
 tomli = []
 typing-extensions = []
+xlsxwriter = []

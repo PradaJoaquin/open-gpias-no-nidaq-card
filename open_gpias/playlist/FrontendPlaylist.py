@@ -468,6 +468,10 @@ class PlaylistGenerator(QtWidgets.QWidget):
                     arr, endung = self.generateKonfigArray()
                     # add ending to path
                     mypath = path[0]
+
+                    if '.npy' not in mypath:
+                        mypath += '.npy'
+
                     if mypath.find(endung + ".npy") == -1:
                         idx = mypath.rfind(".npy")
                         if idx == -1:

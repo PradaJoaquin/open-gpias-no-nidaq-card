@@ -15,6 +15,7 @@ PyQt5 = "^5.15.7"
 appdirs = "^1.4.4"
 pandas = "^1.4.3"
 PyDAQmx = "^1.4.6"
+XlsxWriter = "^3.0.3"
 
 [tool.poetry.dev-dependencies]
 
