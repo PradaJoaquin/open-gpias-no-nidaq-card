@@ -3,20 +3,28 @@ import numpy as np
 import os
 
 def process_trial(data, samplerate):
-    trigger_thresh = 0.1
+    trigger_thresh = 0.2
     startle_thresh = 0.2
 
-    trigger_idx = np.argmax(data[3] > trigger_thresh)
-    startle_idx = np.argmax(data[1][trigger_idx:] > startle_thresh) + trigger_idx
+    trigger_idx = np.argmax(abs(data[3]) > trigger_thresh)
+    startle_idx = np.argmax(abs(data[1][trigger_idx:]) > startle_thresh) + trigger_idx
+    peak_idx = np.argmax(abs(data[1][trigger_idx:])) + trigger_idx
 
     trigger_t = float(trigger_idx) / samplerate
     startle_t = float(startle_idx) / samplerate
+    peak_t = float(peak_idx) / samplerate
+
+    print(f'Trigger: {trigger_t}s')
+
     startle_sec = startle_t - trigger_t
+    peak_sec = peak_t - trigger_t
+
+    peak_amp = abs(data[1][peak_idx])
 
     return [
-        trigger_t,
-        startle_t,
-        startle_sec
+        startle_sec,
+        peak_sec,
+        peak_amp
     ]
 
 
@@ -36,7 +44,11 @@ def export(data, filepath):
     workbook = xlsxwriter.Workbook(filepath)
     worksheet = workbook.add_worksheet()
 
-    header = ['Trigger Time (s)', 'Startle Time (s)', 'Startle Delay (s)']
+    header = [
+        'Startle Beginning Time (s)',
+        'Startle Peak Time (s)',
+        'Peak Amplitude (0-1)',
+    ]
     index = [f'Trial {i+1}' for i in range(len(rows))]
     worksheet.write_row(0, 1, header)
     worksheet.write_column(1, 0, index)
@@ -44,9 +56,11 @@ def export(data, filepath):
     for i,row in enumerate(rows):
         worksheet.write_row(i+1, 1, row)
 
-    worksheet.write_row(len(rows)+2, 2, [
-        'Average Startle Delay (s)',
-        f'=AVERAGE(D2:D{len(rows)+1})'
+    worksheet.write_row(len(rows)+2, 0, [
+        'Average',
+        f'=AVERAGE(B2:B{len(rows)+1})',
+        f'=AVERAGE(C2:C{len(rows)+1})',
+        f'=AVERAGE(D2:D{len(rows)+1})',
     ])
 
     workbook.close()
