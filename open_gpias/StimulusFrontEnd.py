@@ -27,6 +27,7 @@ import qtawesome as qta
 from threading import Thread
 from . import StimulusBackend
 from . import gui_helpers
+from . import excel_export
 from .MeasurementPlot import plotWidget
 
 from scipy.io import wavfile
@@ -266,6 +267,7 @@ class measurementGui(QtWidgets.QWidget):
             self.plot.save_plot(self.output_dir)
 
     def m_finished(self, data_extracted, empty):
+        excel_export.export(data_extracted, self.output_dir)
         self.save_data(data_extracted, finished=True)
         self.textEdit_out.addLog("Measurement finished")
         self.setButtonStatus(0)
